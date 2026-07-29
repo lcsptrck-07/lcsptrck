@@ -409,8 +409,17 @@
         <div class="field"><label>Tag (PT)</label><input type="text" id="pf-tag-pt"></div>
       </div>
       <div class="field">
-        <label>Imagem de capa (URL ou assets/arquivo.png)</label>
-        <input type="text" id="pf-mediaurl-pt" placeholder="assets/cover.png ou https://...">
+        <label>Imagem de capa</label>
+        <div id="pf-cover-preview" style="display:none;margin-bottom:10px;">
+          <img id="pf-cover-preview-img" src="" alt="Preview da capa" style="max-width:100%;max-height:180px;border:1px solid var(--light);border-radius:2px;display:block;object-fit:contain;">
+        </div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+          <label for="pf-cover-upload" style="cursor:pointer;padding:9px 16px;background:var(--black);color:#fff;font-size:0.75rem;letter-spacing:0.04em;border-radius:2px;white-space:nowrap;">📁 Escolher imagem</label>
+          <input type="file" id="pf-cover-upload" accept="image/*" style="display:none;" onchange="handleCoverUpload(event)">
+          <span id="pf-cover-filename" style="font-size:0.75rem;opacity:0.5;"></span>
+          <button type="button" id="pf-cover-clear" onclick="clearCoverUpload()" style="display:none;padding:9px 12px;background:transparent;border:1px solid var(--light);border-radius:2px;font-size:0.72rem;cursor:pointer;">remover</button>
+        </div>
+        <input type="text" id="pf-mediaurl-pt" placeholder="assets/cover.png ou https://..." style="margin-top:10px;" oninput="updateCoverPreview(this.value); document.getElementById('pf-cover-filename').textContent='';">
       </div>
     </div>
 
@@ -639,6 +648,7 @@
     document.getElementById('pf-meta-pt').value  = pt.meta  || '';
     document.getElementById('pf-tag-pt').value   = pt.tag   || '';
     document.getElementById('pf-mediaurl-pt').value = pt.mediaUrl || '';
+    updateCoverPreview(pt.mediaUrl || '');
     document.getElementById('pf-title-en').value = en.title || '';
     document.getElementById('pf-brand-en').value = en.brand || '';
     document.getElementById('pf-meta-en').value  = en.meta  || '';
@@ -657,6 +667,51 @@
 
   function closeProjModal() {
     document.getElementById('proj-modal').classList.remove('open');
+  }
+
+  function handleCoverUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast('Selecione um arquivo de imagem');
+      return;
+    }
+    const MAX_BYTES = 2 * 1024 * 1024; // 2MB
+    if (file.size > MAX_BYTES) {
+      toast('Imagem muito grande (máx. 2MB) — escolha uma menor ou comprima antes');
+      event.target.value = '';
+      return;
+    }
+    const reader = new FileReader();
+    reader.onload = () => {
+      document.getElementById('pf-mediaurl-pt').value = reader.result;
+      document.getElementById('pf-cover-filename').textContent = file.name;
+      updateCoverPreview(reader.result);
+    };
+    reader.onerror = () => toast('Erro ao ler a imagem');
+    reader.readAsDataURL(file);
+  }
+
+  function clearCoverUpload() {
+    document.getElementById('pf-mediaurl-pt').value = '';
+    document.getElementById('pf-cover-upload').value = '';
+    document.getElementById('pf-cover-filename').textContent = '';
+    updateCoverPreview('');
+  }
+
+  function updateCoverPreview(url) {
+    const wrap = document.getElementById('pf-cover-preview');
+    const img = document.getElementById('pf-cover-preview-img');
+    const clearBtn = document.getElementById('pf-cover-clear');
+    if (url) {
+      img.src = url;
+      wrap.style.display = '';
+      clearBtn.style.display = '';
+    } else {
+      img.src = '';
+      wrap.style.display = 'none';
+      clearBtn.style.display = 'none';
+    }
   }
 
   function saveProject() {
